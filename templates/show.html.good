@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HLS Stream - {{ directory }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        video {
+            display: block;
+            margin: 20px auto;
+        }
+        a {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HLS Stream for {{ directory }}</h1>
+        <video id="video" width="640" height="360" controls></video>
+        <a href="/">Back to list</a>
+
+        <h2>Frame Count</h2>
+        <canvas id="frameCountChart" width="400" height="200"></canvas>
+    </div>
+
+    <script>
+        var video = document.getElementById('video');
+        var videoSrc = "{{ hls_link }}";
+
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native support for HLS
+            video.src = videoSrc;
+        } else if (Hls.isSupported()) {
+            // hls.js support
+            var hls = new Hls();
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                video.play();
+            });
+        } else {
+            console.error('This browser does not support HLS.');
+        }
+
+        async function getFrameCount() {
+            const response = await fetch(`/frame_count/{{ directory }}`);
+            const data = await response.json();
+            return data.count;
+        }
+
+        async function renderChart() {
+            const frameCount = await getFrameCount();
+            const ctx = document.getElementById('frameCountChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Frame Count'],
+                    datasets: [{
+                        label: 'Frame Count',
+                        data: [frameCount],
+                        backgroundColor: ['rgba(75, 192, 192, 0.2)'],
+                        borderColor: ['rgba(75, 192, 192, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        renderChart();
+    </script>
+</body>
+</html>
+

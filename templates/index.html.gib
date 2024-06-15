@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HLS Streams</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .camera-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .camera-item {
+            background-color: #e4e4e4;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            flex: 1 0 calc(45% - 20px);
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .camera-item:hover {
+            transform: scale(1.05);
+        }
+        .camera-item a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .video-container {
+            width: 100%;
+            height: auto;
+        }
+        .chart-container {
+            width: 100%;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Available HLS Streams</h1>
+        <div class="camera-list">
+            {% for camera in camera_info %}
+                <div class="camera-item">
+                    <h2>{{ camera.name }}</h2>
+                    <p>Frame Count: <span id="frame-count-{{ camera.name }}">{{ camera.frame_count }}</span></p>
+                    <p>Camera Port: {{ camera.port }}</p> <!-- Display camera model -->
+                    <p>Mission: {{ camera.mission }}</p> <!-- Display camera resolution -->
+                    <div class="video-container">
+                        <video id="video-{{ camera.name }}" width="100%" height="auto" controls></video>
+                    </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            var video = document.getElementById('video-{{ camera.name }}');
+                            var videoSrc = "{{ camera.hls_link }}";
+
+                            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                // Native support for HLS
+                                video.src = videoSrc;
+                            } else if (Hls.isSupported()) {
+                                // hls.js support
+                                var hls = new Hls();
+                                hls.loadSource(videoSrc);
+                                hls.attachMedia(video);
+                                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                                    video.play();
+                                });
+                            } else {
+                                console.error('This browser does not support HLS.');
+                            }
+
+                            async function updateFrameCount() {
+                                try {
+                                    const response = await fetch(`/frame_count/{{ camera.name }}`);
+                                    const data = await response.json();
+                                    document.getElementById('frame-count-{{ camera.name }}').innerText = data.frame_count;
+                                } catch (error) {
+                                    console.error('Error fetching frame count:', error);
+                                }
+                            }
+
+                            setInterval(updateFrameCount, 5000); // Update every 5 seconds
+                        });
+                    </script>
+                    <div class="chart-container">
+                        <img src="data:image/png;base64,{{ chart_data }}" alt="Line Chart" width="100%" height="auto">
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
+

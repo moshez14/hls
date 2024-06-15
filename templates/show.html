@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HLS Streams</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .camera-list, .camera-data-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            list-style: none;
+            padding: 0;
+        }
+        .camera-item, .camera-data-item {
+            background-color: #e4e4e4;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            flex: 1 0 30%;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .camera-item:hover, .camera-data-item:hover {
+            transform: scale(1.05);
+        }
+        .camera-item a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .camera-data-item {
+            text-align: left;
+        }
+        video {
+            display: block;
+            margin: 20px auto;
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Available HLS Streams</h1>
+        <ul class="camera-list">
+            {% for camera in camera_info %}
+                <li class="camera-item">
+                    <h2>{{ camera.name }}</h2>
+                    <video id="video-{{ camera.name }}" controls></video>
+                    <script>
+                        var video = document.getElementById('video-{{ camera.name }}');
+                        var videoSrc = "{{ camera.hls_link }}";
+
+                        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                            // Native support for HLS
+                            video.src = videoSrc;
+                        } else if (Hls.isSupported()) {
+                            // hls.js support
+                            var hls = new Hls();
+                            hls.loadSource(videoSrc);
+                            hls.attachMedia(video);
+                            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                                video.play();
+                            });
+                        } else {
+                            console.error('This browser does not support HLS.');
+                        }
+                    </script>
+                    <p>Frame Count: {{ camera.frame_count }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+        <h1>Camera Data</h1>
+        <ul class="camera-data-list">
+            {% for data in camera_data %}
+                <li class="camera-data-item">
+                    <strong>Port:</strong> {{ data[0] }} <br>
+                    <strong>Mission Name:</strong> {{ data[1] }} <br>
+                    <strong>Camera:</strong> {{ data[2] }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
+

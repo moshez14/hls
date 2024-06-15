@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HLS Streams</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .camera-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .camera-item {
+            background-color: #e4e4e4;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            flex: 1 0 30%;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .camera-item:hover {
+            transform: scale(1.05);
+        }
+        .camera-item a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .camera-item input {
+            margin-top: 10px;
+        }
+        form {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Available HLS Streams</h1>
+        <form action="/multistream" method="post">
+            <div class="camera-list">
+                {% for directory in directories %}
+                <div class="camera-item">
+                    <a href="/show/{{ directory }}">{{ directory }}</a>
+                    <br>
+                    <input type="checkbox" name="cameras" value="{{ directory }}"> Select
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit">View Selected Streams</button>
+        </form>
+    </div>
+</body>
+</html>
+

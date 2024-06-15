@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HLS Streams</title>
+</head>
+<body>
+    <h1>Available HLS Streams</h1>
+    <ul>
+        {% for directory in directories %}
+        <li><a href="/show/{{ directory }}">{{ directory }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+
