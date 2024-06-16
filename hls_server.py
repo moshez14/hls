@@ -33,19 +33,16 @@ def get_camera_mission_data(camera_name):
         result = subprocess.check_output(command, shell=True)
         data = result.decode("utf-8").strip().split("\n")
         print(f"RESULT={data}")
-        camera_info=[]
-        command = f"/home/ubuntu/hls/frame.sh {camera_name}"
-        frame_count = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, text=True)
-        frame = frame_count.communicate()
-        print(f"port: {data[0].split()[0]}, mission: {data[0].split()[1]}, name: {data[0].split()[2]}, frame_count: {frame[0]}")
-        camera_info.append({"port": data[0].split()[0], "mission": data[0].split()[1], "name": data[0].split()[2], "frame_count": frame[0]})
-        # for camera in data:
-        #     command = f"/home/ubuntu/hls/frame.sh {camera[2]}"
-        #     frame_count = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, text=True)
-        #     frame = frame_count.communicate()
-        #     camera_info.append(frame[0])  # Append frame count to camera info
-        #     camera_info.append({"port": camera[0], "Mission": camera[1]})  # Append camera data
-        return camera_info
+        if data:
+            camera_info=[]
+            command = f"/home/ubuntu/hls/frame.sh {camera_name}"
+            frame_count = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, text=True)
+            frame = frame_count.communicate()
+            print(f"port: {data[0].split()[0]}, mission: {data[0].split()[1]}, name: {data[0].split()[2]}, frame_count: {frame[0]}")
+            camera_info.append({"port": data[0].split()[0], "mission": data[0].split()[1], "name": data[0].split()[2], "frame_count": frame[0]})
+            return camera_info
+        else:
+            return False
     except subprocess.CalledProcessError:
         return []
 
@@ -125,7 +122,8 @@ def index():
         hls_link = f"{BASE_URL}{directory}/index.m3u8"
         camera_data = get_camera_mission_data(directory)
         print(f"CAM DATA={camera_data}")
-        camera_info.append({"mission": camera_data[0]['mission'], "name":camera_data[0]['name'], "frame_count": frame_count, "hls_link": hls_link, "port": camera_data[0]['port']})
+        if camera_data != False:
+            camera_info.append({"mission": camera_data[0]['mission'], "name":camera_data[0]['name'], "frame_count": frame_count, "hls_link": hls_link, "port": camera_data[0]['port']})
         #camera_info.append(camera_data)
 
     camera_data = get_camera_data()
