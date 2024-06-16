@@ -33,7 +33,7 @@ def get_camera_mission_data(camera_name):
         result = subprocess.check_output(command, shell=True)
         data = result.decode("utf-8").strip().split("\n")
         print(f"RESULT={data}")
-        if data:
+        if data != ['']:
             camera_info=[]
             command = f"/home/ubuntu/hls/frame.sh {camera_name}"
             frame_count = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, text=True)
