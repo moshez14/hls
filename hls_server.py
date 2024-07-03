@@ -10,7 +10,8 @@ from io import BytesIO
 app = Flask(__name__)
 
 HLS_ROOT = "/var/www/html/show"
-BASE_URL = "http://dev.maifocus.com:8080/show/"
+#BASE_URL = "http://dev.maifocus.com:8080/show/"
+BASE_URL = "https://dev.maifocus.com/show/"
 
 def get_frame_count(directory):
     try:
