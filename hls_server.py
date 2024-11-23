@@ -10,8 +10,8 @@ from io import BytesIO
 app = Flask(__name__)
 
 HLS_ROOT = "/var/www/html/show"
-#BASE_URL = "http://dev.maifocus.com:8080/show/"
-BASE_URL = "https://dev.maifocus.com/show/"
+BASE_URL = "https://www.maifocus.com/show/"
+#BASE_URL = "http://www.maifocus.com:8080/show/"
 
 def get_frame_count(directory):
     try:
@@ -54,12 +54,16 @@ def get_camera_data():
         camera=[]
         camera_info = [line.split() for line in data]
         for camera in camera_info:
-            command = f"/home/ubuntu/hls/frame.sh {camera[2]}"
-            frame_count = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, text=True)
-            frame = frame_count.communicate()
-            camera.append(frame[0])  # Append frame count to camera info
-            # Example additional camera data, adjust as needed
-            camera.append({"port": camera[0], "Mission": camera[1]})  # Append camera data
+            try:
+                print(f"CMAERA={camera}")
+                command = f"/home/ubuntu/hls/frame.sh {camera[2]}"
+                frame_count = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, text=True)
+                frame = frame_count.communicate()
+                camera.append(frame[0])  # Append frame count to camera info
+                # Example additional camera data, adjust as needed
+                camera.append({"port": camera[0], "Mission": camera[1]})  # Append camera data
+            except IndexError:
+                print ("Wrong")
         return camera_info
     except subprocess.CalledProcessError:
         return []
