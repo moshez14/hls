@@ -1,10 +1,11 @@
 #!/bin/bash
 CAMERA=$1
-LOG_FILE="/tmp/frame_count_log.txt"
+MISSION_ID=$2
+LOG_FILE="/home/ubuntu/hls/frame_count_log.txt"
 
 # Function to extract the number from the string
 # Execute tail command to monitor syslog and grep for the string pattern
-number=$(tail -1500 /var/log/syslog | grep "$CAMERA" | grep "FRAME COUNT=[0-9]\{1,\}" | tail -1 | awk 'BEGIN { FS="=" } { print $4 }')
+number=$(tail -4500 /var/log/syslog | grep "$CAMERA" | grep "$MISSION_ID" | grep "FRAME COUNT=[0-9]\{1,\}" | tail -1 | awk 'BEGIN { FS="=" } { print $3 }')
 #sed -i '1,5d' $LOG_FILE
 
 # Get the current timestamp
