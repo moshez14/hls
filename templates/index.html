@@ -67,9 +67,6 @@
                     <p>Frame Count: <span id="frame-count-{{ camera.name }}">{{ camera.frame_count }}</span></p>
                     <p>Camera Port: {{ camera.port }}</p> <!-- Display camera model -->
                     <p>Mission: {{ camera.mission }}</p> <!-- Display camera resolution -->
-                    <div class="video-container">
-                        <video id="video-{{ camera.name }}" width="100%" height="auto" controls></video>
-                    </div>
                     <script>
                         document.addEventListener('DOMContentLoaded', function() {
                             var video = document.getElementById('video-{{ camera.name }}');
@@ -84,7 +81,7 @@
                                 hls.loadSource(videoSrc);
                                 hls.attachMedia(video);
                                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                                    video.play();
+                                    // video.play();
                                 });
                             } else {
                                 console.error('This browser does not support HLS.');
