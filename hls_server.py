@@ -39,7 +39,7 @@ HTML_TEMPLATE = """
     <p><strong>Page refreshed at:</strong> {{ timestamp }}</p>
     <table>
         <tr>
-            <th>RTMP URL</th>
+            <th>RTMP/RTSP URL</th>
             <th>Port</th>
             <th>Camera Name</th>
             <th>Mission Name</th>
@@ -102,8 +102,12 @@ def parse_cameras():
             if len(parts) < 14:
                 continue  # Skip invalid lines
 
+            # Detect whether it's an RTSP or RTMP line
+            url = parts[0]
+            is_rtsp = url.startswith("rtsp://")
+
             camera = {
-                "rtmp_url": parts[0],
+                "rtmp_url": url,
                 "port": parts[1],
                 "camera_name": parts[2],
                 "mission_name": parts[3],
@@ -132,17 +136,10 @@ def get_frame_count(mission_id, rtmp_code):
         return f"Error: {str(e)}"
 
 def get_service_status(service_name):
-    """
-    Runs systemctl status and returns a dict with:
-    - name
-    - status (active/inactive)
-    - active_since (timestamp)
-    """
     try:
         result = subprocess.run(["systemctl", "status", service_name], capture_output=True, text=True)
         output = result.stdout
 
-        # Extract Active line (e.g. Active: active (running) since Mon 2025-07-07 17:00:02 UTC; 24min ago)
         active_line = None
         for line in output.splitlines():
             if line.strip().startswith("Active:"):
@@ -152,8 +149,6 @@ def get_service_status(service_name):
         status = "Unknown"
         active_since = "Unknown"
         if active_line:
-            # Example active_line:
-            # Active: active (running) since Mon 2025-07-07 17:00:02 UTC; 24min ago
             status_match = re.search(r"Active:\s+(\w+)", active_line)
             since_match = re.search(r"since\s+(.+?);", active_line)
             if status_match:
