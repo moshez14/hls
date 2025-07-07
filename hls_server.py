@@ -1,25 +1,42 @@
 import subprocess
 from flask import Flask, render_template_string
+import datetime
+import re
 
 app = Flask(__name__)
 
 CAMERAS_FILE = "/home/ubuntu/livestream/cameras.dat"
+
+# Services to check status for
+SERVICES = [
+    "readDB.service",
+    "MAI.service",
+    "mai-front.service",
+    "jpg_watcher.service",
+    "inotify.service",
+    "chat.service",
+    "mongod.service",
+    "stream_chunker.service",
+]
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Camera Data</title>
+    <title>Camera and Service Status</title>
+    <meta http-equiv="refresh" content="10">  <!-- Auto refresh every 10 seconds -->
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f4; }
-        table { width: 100%; border-collapse: collapse; background: white; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-bottom: 40px; }
         th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #007bff; color: white; }
+        h2 { margin-top: 40px; }
     </style>
 </head>
 <body>
     <h1>Camera Data</h1>
+    <p><strong>Page refreshed at:</strong> {{ timestamp }}</p>
     <table>
         <tr>
             <th>RTMP URL</th>
@@ -34,6 +51,7 @@ HTML_TEMPLATE = """
             <th>Mission Code</th>
             <th>Mission ID</th>
             <th>Frame Count</th>
+            <th>Status</th>
         </tr>
         {% for camera in cameras %}
         <tr>
@@ -49,6 +67,23 @@ HTML_TEMPLATE = """
             <td>{{ camera.mission_code }}</td>
             <td>{{ camera.mission_id }}</td>
             <td>{{ camera.frame_count }}</td>
+            <td>{{ camera.status }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Service Status</h2>
+    <table>
+        <tr>
+            <th>Service Name</th>
+            <th>Status</th>
+            <th>Active Since</th>
+        </tr>
+        {% for service in services %}
+        <tr>
+            <td>{{ service.name }}</td>
+            <td>{{ service.status }}</td>
+            <td>{{ service.active_since }}</td>
         </tr>
         {% endfor %}
     </table>
@@ -64,8 +99,7 @@ def parse_cameras():
 
         for line in lines:
             parts = line.strip().split()
-            print(f"{parts}")
-            if len(parts) < 11:
+            if len(parts) < 14:
                 continue  # Skip invalid lines
 
             camera = {
@@ -74,13 +108,14 @@ def parse_cameras():
                 "camera_name": parts[2],
                 "mission_name": parts[3],
                 "stream_name": parts[4],
-                "object_ids": parts[6],  # Assuming list format needs parsing
+                "object_ids": parts[6],
                 "mission_status": parts[8],
                 "email": parts[10],
                 "rtmp_code": parts[-2],
                 "mission_code": parts[13],
-                "mission_id": parts[-1],  # Using mission_code as mission_id
-                "frame_count": get_frame_count(parts[-2], parts[-1])
+                "mission_id": parts[-1],
+                "frame_count": get_frame_count(parts[-1], parts[-2]),
+                "status": "Running"
             }
             cameras.append(camera)
 
@@ -88,19 +123,63 @@ def parse_cameras():
         print(f"Error: {CAMERAS_FILE} not found.")
     return cameras
 
-def get_frame_count(camera, mission_id):
+def get_frame_count(mission_id, rtmp_code):
     try:
-        print(f"{camera}, {mission_id}")
-        command = f"/home/ubuntu/hls/frame.sh {camera} {mission_id}"
+        command = f"/home/ubuntu/hls/frame.sh {mission_id} {rtmp_code}"
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
         return result.stdout.strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
+def get_service_status(service_name):
+    """
+    Runs systemctl status and returns a dict with:
+    - name
+    - status (active/inactive)
+    - active_since (timestamp)
+    """
+    try:
+        result = subprocess.run(["systemctl", "status", service_name], capture_output=True, text=True)
+        output = result.stdout
+
+        # Extract Active line (e.g. Active: active (running) since Mon 2025-07-07 17:00:02 UTC; 24min ago)
+        active_line = None
+        for line in output.splitlines():
+            if line.strip().startswith("Active:"):
+                active_line = line.strip()
+                break
+
+        status = "Unknown"
+        active_since = "Unknown"
+        if active_line:
+            # Example active_line:
+            # Active: active (running) since Mon 2025-07-07 17:00:02 UTC; 24min ago
+            status_match = re.search(r"Active:\s+(\w+)", active_line)
+            since_match = re.search(r"since\s+(.+?);", active_line)
+            if status_match:
+                status = status_match.group(1)
+            if since_match:
+                active_since = since_match.group(1)
+
+        return {
+            "name": service_name,
+            "status": status,
+            "active_since": active_since
+        }
+
+    except Exception as e:
+        return {
+            "name": service_name,
+            "status": f"Error: {str(e)}",
+            "active_since": "N/A"
+        }
+
 @app.route("/")
 def index():
     cameras = parse_cameras()
-    return render_template_string(HTML_TEMPLATE, cameras=cameras)
+    services = [get_service_status(s) for s in SERVICES]
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return render_template_string(HTML_TEMPLATE, cameras=cameras, services=services, timestamp=timestamp)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8090)
