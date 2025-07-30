@@ -29,10 +29,10 @@ for key in $STREAM_KEYS; do
         done
 
         # Send SMS alert
-        curl --silent --output /dev/null --location --request POST "$API_URL" \
-          --header "Content-Type: application/json-patch+json" \
-          --header "$AUTH_HEADER" \
-          --data-raw "{ \"number\": \"$PHONE_NUMBER\", \"message\": \"Maifocus Alert: ffmpeg $key was killed\" }"
+        #curl --silent --output /dev/null --location --request POST "$API_URL" \
+        #  --header "Content-Type: application/json-patch+json" \
+        #  --header "$AUTH_HEADER" \
+        #  --data-raw "{ \"number\": \"$PHONE_NUMBER\", \"message\": \"Maifocus Alert: ffmpeg $key was killed\" }"
 
         echo "SMS alert sent for key: $key"
     fi
