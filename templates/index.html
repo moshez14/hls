@@ -2,112 +2,416 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HLS Streams</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <title>Status Dashboard</title>
+    <meta http-equiv="refresh" content="300">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
-        .container {
-            width: 80%;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
-        }
-        h1 {
-            text-align: center;
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #99cfff;
+            min-height: 100vh;
             color: #333;
         }
-        .camera-list {
+
+        .container {
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .header h1 {
+            margin-top: -5px;
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 15px 30px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: #2c3e50;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .logs-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .collapsible {
+            cursor: pointer;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            border: none;
+            text-align: left;
+            width: 100%;
+            outline: none;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
+            align-items: center;
+            gap: 10px;
         }
-        .camera-item {
-            background-color: #e4e4e4;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+
+        .collapsible:hover {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .content {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 8px;
             padding: 20px;
-            text-align: center;
-            flex: 1 0 calc(45% - 20px);
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
         }
-        .camera-item:hover {
-            transform: scale(1.05);
-        }
-        .camera-item a {
-            text-decoration: none;
-            color: #007bff;
-            font-weight: bold;
-        }
-        .video-container {
+
+        .search-box {
             width: 100%;
-            height: auto;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
         }
-        .chart-container {
-            width: 100%;
-            height: 200px;
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .log-output {
+            white-space: pre-wrap;
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        .log-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-output::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+
+        .log-output::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        .dataTables_length select,
+        .dataTables_filter input {
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        .dataTables_filter input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .resolve-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .resolve-btn:hover {
+            background-color: #e8f5e8;
+            transform: scale(1.1);
+        }
+
+        .resolve-btn:active {
+            transform: scale(0.95);
+        }
+
+        .resolve-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header, .section, .logs-section {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
         }
     </style>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.4/css/dataTables.dataTables.css"/>
 </head>
 <body>
-    <div class="container">
-        <h1>Available HLS Streams</h1>
-        <div class="camera-list">
-            {% for camera in camera_info %}
-                <div class="camera-item">
-                    <h2>{{ camera.name }}</h2>
-                    <p>Frame Count: <span id="frame-count-{{ camera.name }}">{{ camera.frame_count }}</span></p>
-                    <p>Camera Port: {{ camera.port }}</p> <!-- Display camera model -->
-                    <p>Mission: {{ camera.mission }}</p> <!-- Display camera resolution -->
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            var video = document.getElementById('video-{{ camera.name }}');
-                            var videoSrc = "{{ camera.hls_link }}";
+<div class="container">
+    <div class="header">
+        <h1>Status Dashboard</h1>
+        <p><strong>Page refreshed at:</strong> {{ timestamp }}</p>
+    </div>
 
-                            if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                                // Native support for HLS
-                                video.src = videoSrc;
-                            } else if (Hls.isSupported()) {
-                                // hls.js support
-                                var hls = new Hls();
-                                hls.loadSource(videoSrc);
-                                hls.attachMedia(video);
-                                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                                    // video.play();
-                                });
-                            } else {
-                                console.error('This browser does not support HLS.');
-                            }
-
-                            async function updateFrameCount() {
-                                try {
-                                    const response = await fetch(`/frame_count/{{ camera.name }}`);
-                                    const data = await response.json();
-                                    document.getElementById('frame-count-{{ camera.name }}').innerText = data.frame_count;
-                                } catch (error) {
-                                    console.error('Error fetching frame count:', error);
-                                }
-                            }
-
-                            setInterval(updateFrameCount, 5000); // Update every 5 seconds
-                        });
-                    </script>
-
-                </div>
-            {% endfor %}
-            <div class="chart-container">
-                <img src="data:image/png;base64,{{ chart_data }}" alt="Line Chart" width="100%" height="auto">
-           </div>
+    <div class="section">
+        <h2 class="section-title">📹 Cameras</h2>
+        <div class="table-wrapper">
+            <table id="cameras-table">
+                <thead>
+                <tr>
+                    <th>RTMP/RTSP URL</th>
+                    <th>Port</th>
+                    <th>Camera Name</th>
+                    <th>Mission Name</th>
+                    <th>Stream Name</th>
+                    <th>Object IDs</th>
+                    <th>Mission Status</th>
+                    <th>Email</th>
+                    <th>RTMP Code</th>
+                    <th>Mission Code</th>
+                    <th>Mission ID</th>
+                    <th>Frame Count</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for camera in cameras %}
+                    <tr>
+                        <td>{{ camera.rtmp_url }}</td>
+                        <td>{{ camera.port }}</td>
+                        <td>{{ camera.camera_name }}</td>
+                        <td>{{ camera.mission_name }}</td>
+                        <td>{{ camera.stream_name }}</td>
+                        <td>{{ camera.object_ids }}</td>
+                        <td>{{ camera.mission_status }}</td>
+                        <td>{{ camera.email }}</td>
+                        <td>{{ camera.rtmp_code }}</td>
+                        <td>{{ camera.mission_code }}</td>
+                        <td>{{ camera.mission_id }}</td>
+                        <td>{{ camera.frame_count }}</td>
+                        <td>{{ camera.status }}</td>
+                    </tr>
+                    </tbody>
+                {% endfor %}
+            </table>
         </div>
     </div>
+
+    <div class="section">
+        <h2 class="section-title">⚙️ Service Status</h2>
+        <div class="table-wrapper">
+            <table id="services-table">
+                <thead>
+                <tr>
+                    <th>Service Name</th>
+                    <th>Status</th>
+                    <th>Active Since</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for service in services %}
+                    <tr>
+                        <td>{{ service.name }}</td>
+                        <td>{{ service.status }}</td>
+                        <td>{{ service.active_since }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">💬 System Message Log</h2>
+        <div class="table-wrapper">
+            <table id="system-messages-table">
+                <thead>
+                <tr>
+                    <th>Message</th>
+                    <th>Created at</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for message in system_message_logs %}
+                    <tr>
+                        <td>{{ message.message }}</td>
+                        <td>{{ message.createdAt }}</td>
+                        <td>
+                            <button class="resolve-btn" data-message-id="{{ message.id }}" title="Mark as resolved">
+                                ✅
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="logs-section">
+        <h2 class="section-title">📋 System Logs</h2>
+        <div style="margin-top: 10px;">
+            {% for log_name, title in [
+                ("systemd", "Systemd Log: jpg_video_watcher.service"),
+                ("jpg_video_watcher", "File Log: /var/log/jpg_video_watcher.log"),
+                ("jpg_watcher", "File Log: /var/log/jpg_watcher.log")
+            ] %}
+                <button class="collapsible">📄 {{ title }}</button>
+                <div class="content">
+                    <input type="text" class="search-box" data-log="{{ log_name }}" placeholder="Search logs...">
+                    <div id="log-{{ log_name }}" class="log-output">Loading log...</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.4/js/dataTables.js"></script>
+<script>
+    const logTargets = ["systemd", "jpg_video_watcher", "jpg_watcher"];
+
+    document.querySelectorAll(".collapsible").forEach(button => {
+        button.addEventListener("click", () => {
+            const content = button.nextElementSibling;
+            content.style.display = content.style.display === "block" ? "none" : "block";
+        });
+    });
+
+    async function fetchLog(name) {
+        try {
+            const res = await fetch(`/log/${name}`);
+            const data = await res.json();
+            const searchBox = document.querySelector(`.search-box[data-log='${name}']`);
+            const filter = searchBox.value.toLowerCase();
+            document.getElementById("log-" + name).textContent = data.log.split("\\n").filter(l => l.toLowerCase().includes(filter)).join("\\n");
+        } catch {
+            document.getElementById("log-" + name).textContent = "Error loading log.";
+        }
+    }
+
+    function updateAllLogs() {
+        for (const name of logTargets) fetchLog(name);
+    }
+
+    updateAllLogs();
+    setInterval(updateAllLogs, 10000);
+
+    document.querySelectorAll(".search-box").forEach(input => {
+        input.addEventListener("input", () => {
+            const name = input.dataset.log;
+            fetchLog(name);
+        });
+    });
+
+    $(document).ready(function () {
+        const tableConfig = {
+            pageLength: 5,
+            lengthMenu: [5, 10, 25, 50],
+            responsive: true,
+            language: {
+                lengthMenu: "Show _MENU_ entries",
+            },
+        };
+
+        $('#cameras-table').DataTable(tableConfig);
+        $('#services-table').DataTable(tableConfig);
+        $('#system-messages-table').DataTable(tableConfig);
+    });
+</script>
 </body>
 </html>
-
