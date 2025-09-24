@@ -1,12 +1,15 @@
-import subprocess
-from flask import Flask, render_template_string, jsonify
 import datetime
-import re
+import json
 import os
+import re
+import subprocess
+import requests
+
+from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
 
-CAMERAS_FILE = "/home/ubuntu/livestream/cameras.dat"
+CAMERAS_FILE = "/home/ubuntu/livestream/cameras.json"
 
 SERVICES = [
     "readDB.service",
@@ -23,129 +26,28 @@ LOG_FILES = {
     "jpg_watcher": "/var/log/jpg_watcher.log"
 }
 
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Status Dashboard</title>
-    <meta http-equiv="refresh" content="300">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f4; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-bottom: 40px; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #007bff; color: white; }
-        h2 { margin-top: 40px; }
-        .log-output { white-space: pre-wrap; background: #111; color: #0f0; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; }
-        #search-box { margin-bottom: 10px; padding: 5px; width: 300px; }
-        .collapsible { cursor: pointer; padding: 10px; background-color: #007bff; color: white; border: none; text-align: left; width: 100%; outline: none; font-size: 16px; }
-        .content { display: none; overflow: hidden; background-color: #f1f1f1; padding: 10px; margin-bottom: 20px; }
-    </style>
-</head>
-<body>
-    <h1>Camera and Service Status</h1>
-    <p><strong>Page refreshed at:</strong> {{ timestamp }}</p>
-
-    <h2>Cameras</h2>
-    <table>
-        <tr>
-            <th>RTMP/RTSP URL</th><th>Port</th><th>Camera Name</th><th>Mission Name</th>
-            <th>Stream Name</th><th>Object IDs</th><th>Mission Status</th><th>Email</th>
-            <th>RTMP Code</th><th>Mission Code</th><th>Mission ID</th><th>Frame Count</th><th>Status</th>
-        </tr>
-        {% for camera in cameras %}
-        <tr>
-            <td>{{ camera.rtmp_url }}</td><td>{{ camera.port }}</td><td>{{ camera.camera_name }}</td><td>{{ camera.mission_name }}</td>
-            <td>{{ camera.stream_name }}</td><td>{{ camera.object_ids }}</td><td>{{ camera.mission_status }}</td><td>{{ camera.email }}</td>
-            <td>{{ camera.rtmp_code }}</td><td>{{ camera.mission_code }}</td><td>{{ camera.mission_id }}</td><td>{{ camera.frame_count }}</td><td>{{ camera.status }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <h2>Service Status</h2>
-    <table>
-        <tr><th>Service Name</th><th>Status</th><th>Active Since</th></tr>
-        {% for service in services %}
-        <tr><td>{{ service.name }}</td><td>{{ service.status }}</td><td>{{ service.active_since }}</td></tr>
-        {% endfor %}
-    </table>
-
-    <!-- Log Panels -->
-    {% for log_name, title in [
-        ("systemd", "Systemd Log: jpg_video_watcher.service"),
-        ("jpg_video_watcher", "File Log: /var/log/jpg_video_watcher.log"),
-        ("jpg_watcher", "File Log: /var/log/jpg_watcher.log")
-    ] %}
-    <button class="collapsible">📄 {{ title }}</button>
-    <div class="content">
-        <input type="text" class="search-box" data-log="{{ log_name }}" placeholder="Search logs...">
-        <div id="log-{{ log_name }}" class="log-output">Loading log...</div>
-    </div>
-    {% endfor %}
-
-    <script>
-        const logTargets = ["systemd", "jpg_video_watcher", "jpg_watcher"];
-
-        document.querySelectorAll(".collapsible").forEach(button => {
-            button.addEventListener("click", () => {
-                const content = button.nextElementSibling;
-                content.style.display = content.style.display === "block" ? "none" : "block";
-            });
-        });
-
-        async function fetchLog(name) {
-            try {
-                const res = await fetch(`/log/${name}`);
-                const data = await res.json();
-                const searchBox = document.querySelector(`.search-box[data-log='${name}']`);
-                const filter = searchBox.value.toLowerCase();
-                const lines = data.log.split("\\n").filter(l => l.toLowerCase().includes(filter)).join("\\n");
-                document.getElementById("log-" + name).textContent = lines;
-            } catch {
-                document.getElementById("log-" + name).textContent = "Error loading log.";
-            }
-        }
-
-        function updateAllLogs() {
-            for (const name of logTargets) fetchLog(name);
-        }
-
-        updateAllLogs();
-        setInterval(updateAllLogs, 10000);
-
-        document.querySelectorAll(".search-box").forEach(input => {
-            input.addEventListener("input", () => {
-                const name = input.dataset.log;
-                fetchLog(name);
-            });
-        });
-    </script>
-</body>
-</html>
-"""
-
 def parse_cameras():
     cameras = []
     try:
         with open(CAMERAS_FILE, "r") as file:
-            for line in file:
-                parts = line.strip().split()
-                if len(parts) < 14:
-                    continue
+            cameras_list = json.load(file)
+            for camera in cameras_list:
+                frame_count = get_frame_count(camera["mission_ids"], camera["rtmpCode"])
+                print(frame_count)
                 cameras.append({
-                    "rtmp_url": parts[0],
-                    "port": parts[1],
-                    "camera_name": parts[2],
-                    "mission_name": parts[3],
-                    "stream_name": parts[4],
-                    "object_ids": parts[6],
-                    "mission_status": parts[8],
-                    "email": parts[10],
-                    "rtmp_code": parts[-2],
-                    "mission_code": parts[13],
-                    "mission_id": parts[-1],
-                    "frame_count": get_frame_count(parts[-1], parts[-2]),
-                    "status": "Running"
+                    "rtmp_url": camera["streamUrl"],
+                    "port": camera["port"],
+                    "camera_name": camera["camera_name"],
+                    "mission_name": camera["name1"],
+                    "stream_name": f"livestream{camera['livestream_port']}",
+                    "object_ids": camera["object_ids"],
+                    "mission_status": camera["mission_status"],
+                    "email": camera["email"],
+                    "rtmp_code": camera["rtmpCode"],
+                    "mission_code": camera["rtmpCode"],
+                    "mission_id": camera["mission_ids"],
+                    "frame_count": get_frame_count(camera["mission_ids"], camera["rtmpCode"]),
+                    "status": "Warning" if frame_count == "Err" or int(frame_count) < 1 else "Running"
                 })
     except FileNotFoundError:
         pass
@@ -178,12 +80,23 @@ def get_service_status(service_name):
     except Exception:
         return {"name": service_name, "status": "Error", "active_since": "N/A"}
 
+def get_system_message_logs():
+    url = f"http://localhost:5500/api/system_messagelog"
+    payload = ""
+    headers = {
+        'Content-Type': 'application/json-patch+json',
+        'Authorization': 'Basic YWRtaW46QXVndV8yMDIz'
+    }
+    response = requests.request("GET", url, headers=headers, data=payload)
+    return json.loads(response.text)["messages"]
+
 @app.route("/")
 def index():
     cameras = parse_cameras()
     services = [get_service_status(s) for s in SERVICES]
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return render_template_string(HTML_TEMPLATE, cameras=cameras, services=services, timestamp=timestamp)
+    system_message_logs = get_system_message_logs()
+    return render_template("index.html", cameras=cameras, services=services, timestamp=timestamp, system_message_logs=system_message_logs)
 
 @app.route("/log/<name>")
 def log(name):
