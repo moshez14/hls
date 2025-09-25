@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import requests
+from urllib.parse import quote
 
 from flask import Flask, jsonify, render_template
 
@@ -121,6 +122,24 @@ def log(name):
             return jsonify({"log": f"Error reading file: {str(e)}"})
     else:
         return jsonify({"log": "Invalid log name"}), 404
+
+
+@app.route("/api/system_messagelog/<message_id>", methods=["DELETE"])
+def delete_system_message(message_id):
+    try:
+        url = f"http://localhost:5500/api/system_messagelog/{quote(message_id)}"
+        headers = {
+            'Content-Type': 'application/json-patch+json',
+            'Authorization': 'Basic YWRtaW46QXVndV8yMDIz'
+        }
+        response = requests.delete(url, headers=headers)
+
+        if response.status_code == 200:
+            return jsonify({"success": True, "message": "Message deleted successfully"})
+        else:
+            return jsonify({"success": False, "message": "Failed to delete message"}), response.status_code
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8090)
