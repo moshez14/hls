@@ -320,15 +320,21 @@
             <table id="system-messages-table">
                 <thead>
                 <tr>
+                    <th>Mission ID</th>
+                    <th>Camera ID</th>
                     <th>Message</th>
-                    <th>Created at</th>
+                    <th>Source</th>
+                    <th>Created At</th>
                     <th>Action</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for message in system_message_logs %}
                     <tr>
+                        <td>{{ message.missionId }}</td>
+                        <td>{{ message.cameraId }}</td>
                         <td>{{ message.message }}</td>
+                        <td>{{ message.source }}</td>
                         <td>{{ message.createdAt }}</td>
                         <td>
                             <button class="delete-btn" onclick="deleteMessage('{{ message._id }}', this)" title="Delete">
