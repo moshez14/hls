@@ -13,12 +13,14 @@ app = Flask(__name__)
 CAMERAS_FILE = "/home/ubuntu/livestream/cameras.json"
 
 SERVICES = [
-    "readDB.service",
-    "MAI.service",
-    "mai-front.service",
-    "jpg_video_watcher.service",
     "chat.service",
+    "jpg_video_watcher.service",
+    "mai-front.service",
+    "MAI.service",
     "mongod.service",
+    "polygon.service",
+    "readDB.service",
+    "severity.service",
     "stream_chunker.service",
 ]
 
@@ -77,9 +79,73 @@ def get_service_status(service_name):
             since_match = re.search(r"since\s+(.+?);", active_line)
             if status_match: status = status_match.group(1)
             if since_match: active_since = since_match.group(1)
-        return {"name": service_name, "status": status, "active_since": active_since}
+
+        details = {}
+
+        if status == "active":
+            main_pid_result = subprocess.run(["systemctl", "show", service_name, "--property=MainPID", "--value"],
+                                             capture_output=True, text=True)
+            main_pid = main_pid_result.stdout.strip()
+
+            if main_pid and main_pid != "0":
+                cpu_result = subprocess.run(["ps", "-p", main_pid, "-o", "%cpu", "--no-headers"],
+                                            capture_output=True, text=True)
+                mem_result = subprocess.run(["ps", "-p", main_pid, "-o", "%mem", "--no-headers"],
+                                            capture_output=True, text=True)
+
+                details["main_pid"] = main_pid
+                details["cpu_usage"] = cpu_result.stdout.strip() if cpu_result.returncode == 0 else "N/A"
+                details["memory_usage"] = mem_result.stdout.strip() if mem_result.returncode == 0 else "N/A"
+
+                try:
+                    thread_count = len(os.listdir(f"/proc/{main_pid}/task/"))
+                    details["thread_count"] = thread_count
+                except:
+                    details["thread_count"] = "N/A"
+            else:
+                details["main_pid"] = None
+                details["cpu_usage"] = "N/A"
+                details["memory_usage"] = "N/A"
+                details["children_count"] = 0
+                details["thread_count"] = "N/A"
+
+            last_log_time = get_last_log_time(service_name)
+            if last_log_time:
+                current_time = datetime.datetime.now().timestamp()
+                log_timeout = 300  # 5 minutes
+                time_diff = current_time - last_log_time
+                details["last_log_time"] = datetime.datetime.fromtimestamp(last_log_time).strftime("%Y-%m-%d %H:%M:%S")
+                details["is_stuck"] = time_diff > log_timeout
+                details["minutes_since_log"] = int(time_diff / 60)
+            else:
+                details["last_log_time"] = "No recent logs"
+                details["is_stuck"] = False
+                details["minutes_since_log"] = 0
+
+        return {
+            "name": service_name,
+            "status": status,
+            "active_since": active_since,
+            "details": details
+        }
     except Exception:
         return {"name": service_name, "status": "Error", "active_since": "N/A"}
+
+
+def get_last_log_time(service_name):
+    """Get the timestamp of the last log entry for a service"""
+    try:
+        result = subprocess.run([
+            "journalctl", "-u", service_name, "--no-pager", "-n", "1", "--output=json"
+        ], capture_output=True, text=True)
+
+        if result.returncode == 0 and result.stdout.strip():
+            timestamp_match = re.search(r'"__REALTIME_TIMESTAMP":"(\d+)"', result.stdout)
+            if timestamp_match:
+                return int(timestamp_match.group(1)) / 1000000
+        return None
+    except Exception:
+        return None
 
 def get_system_message_logs():
     url = f"http://localhost:5500/api/system_messagelog"

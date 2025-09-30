@@ -219,6 +219,55 @@
             cursor: not-allowed;
         }
 
+        .metric-value {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+
+        .metric-low {
+            color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+
+        .metric-medium {
+            color: #fd7e14;
+            background: rgba(253, 126, 20, 0.1);
+        }
+
+        .metric-high {
+            color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-secondary {
+            background: #e2e3e5;
+            color: #6c757d;
+        }
+
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -295,20 +344,60 @@
         <div class="table-wrapper">
             <table id="services-table">
                 <thead>
-                <tr>
-                    <th>Service Name</th>
-                    <th>Status</th>
-                    <th>Active Since</th>
-                </tr>
+                    <tr>
+                        <th>Service Name</th>
+                        <th>Status</th>
+                        <th>Active Since</th>
+                        <th>CPU %</th>
+                        <th>Memory %</th>
+                        <th>Threads</th>
+                        <th>Last Log</th>
+                        <th>Health</th>
+                    </tr>
                 </thead>
                 <tbody>
-                {% for service in services %}
+                    {% for service in services %}
                     <tr>
                         <td>{{ service.name }}</td>
-                        <td>{{ service.status }}</td>
+                        <td>
+                            {% if service.status == 'active' %}
+                                <span class="badge badge-success">{{ service.status }}</span>
+                            {% elif service.status == 'failed' %}
+                                <span class="badge badge-danger">{{ service.status }}</span>
+                            {% else %}
+                                <span class="badge badge-warning">{{ service.status }}</span>
+                            {% endif %}
+                        </td>
                         <td>{{ service.active_since }}</td>
+                        <td>
+                            {% if service.details.cpu_usage and service.details.cpu_usage|float > 80 %}
+                                <span class="metric-value metric-high">{{ service.details.cpu_usage }}</span>
+                            {% elif service.details.cpu_usage and service.details.cpu_usage|float > 50 %}
+                                <span class="metric-value metric-medium">{{ service.details.cpu_usage }}</span>
+                            {% else %}
+                                <span class="metric-value metric-low">{{ service.details.cpu_usage or 'N/A' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if service.details.memory_usage and service.details.memory_usage|float > 80 %}
+                                <span class="metric-value metric-high">{{ service.details.memory_usage }}</span>
+                            {% elif service.details.memory_usage and service.details.memory_usage|float > 50 %}
+                                <span class="metric-value metric-medium">{{ service.details.memory_usage }}</span>
+                            {% else %}
+                                <span class="metric-value metric-low">{{ service.details.memory_usage or 'N/A' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ service.details.thread_count or 'N/A' }}</td>
+                        <td>{{ service.details.last_log_time or 'N/A' }}</td>
+                        <td>
+                            {% if service.details.is_stuck %}
+                                <span class="badge badge-danger">STUCK ({{ service.details.minutes_since_log }}m)</span>
+                            {% else %}
+                                <span class="badge badge-success">OK</span>
+                            {% endif %}
+                        </td>
                     </tr>
-                {% endfor %}
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
