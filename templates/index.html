@@ -301,7 +301,7 @@
             <table id="cameras-table">
                 <thead>
                 <tr>
-                    <th>RTMP/RTSP URL</th>
+                    <th>RTMP URL</th>
                     <th>Port</th>
                     <th>Camera Name</th>
                     <th>Mission Name</th>
@@ -309,8 +309,6 @@
                     <th>Object IDs</th>
                     <th>Mission Status</th>
                     <th>Email</th>
-                    <th>RTMP Code</th>
-                    <th>Mission Code</th>
                     <th>Mission ID</th>
                     <th>Frame Count</th>
                     <th>Status</th>
@@ -319,7 +317,7 @@
                 <tbody>
                 {% for camera in cameras %}
                     <tr>
-                        <td>{{ camera.rtmp_url }}</td>
+                        <td>rtmp://{{ host }}:1935/show/{{ camera.rtmp_code }}</td>
                         <td>{{ camera.port }}</td>
                         <td>{{ camera.camera_name }}</td>
                         <td>{{ camera.mission_name }}</td>
@@ -327,11 +325,23 @@
                         <td>{{ camera.object_ids }}</td>
                         <td>{{ camera.mission_status }}</td>
                         <td>{{ camera.email }}</td>
-                        <td>{{ camera.rtmp_code }}</td>
-                        <td>{{ camera.mission_code }}</td>
                         <td>{{ camera.mission_id }}</td>
-                        <td>{{ camera.frame_count }}</td>
-                        <td>{{ camera.status }}</td>
+                        <td>
+                        {% if camera.frame_count == 'Err' %}
+                            <span class="badge badge-error">{{ camera.frame_count }}</span>
+                        {% else %}
+                            {{ camera.frame_count }}
+                        {% endif %}
+                        </td>
+                        <td>
+                        {% if camera.status == 'Running' %}
+                                <span class="badge badge-success">{{ camera.status }}</span>
+                        {% elif camera.status == 'Warning' %}
+                            <span class="badge badge-warning">{{ camera.status }}</span>
+                        {% else %}
+                            <span class="badge badge-secondary">{{ camera.status }}</span>
+                        {% endif %}
+                        </td>
                     </tr>
                     </tbody>
                 {% endfor %}
@@ -362,31 +372,17 @@
                         <td>
                             {% if service.status == 'active' %}
                                 <span class="badge badge-success">{{ service.status }}</span>
+                            {% elif service.status == 'inactive' %}
+                                <span class="badge badge-warning">{{ service.status }}</span>
                             {% elif service.status == 'failed' %}
                                 <span class="badge badge-danger">{{ service.status }}</span>
                             {% else %}
-                                <span class="badge badge-warning">{{ service.status }}</span>
+                                <span class="badge badge-secondary">{{ service.status }}</span>
                             {% endif %}
                         </td>
                         <td>{{ service.active_since }}</td>
-                        <td>
-                            {% if service.details.cpu_usage and service.details.cpu_usage|float > 80 %}
-                                <span class="metric-value metric-high">{{ service.details.cpu_usage }}</span>
-                            {% elif service.details.cpu_usage and service.details.cpu_usage|float > 50 %}
-                                <span class="metric-value metric-medium">{{ service.details.cpu_usage }}</span>
-                            {% else %}
-                                <span class="metric-value metric-low">{{ service.details.cpu_usage or 'N/A' }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if service.details.memory_usage and service.details.memory_usage|float > 80 %}
-                                <span class="metric-value metric-high">{{ service.details.memory_usage }}</span>
-                            {% elif service.details.memory_usage and service.details.memory_usage|float > 50 %}
-                                <span class="metric-value metric-medium">{{ service.details.memory_usage }}</span>
-                            {% else %}
-                                <span class="metric-value metric-low">{{ service.details.memory_usage or 'N/A' }}</span>
-                            {% endif %}
-                        </td>
+                        <td>{{ service.details.cpu_usage or 'N/A' }}</td>
+                        <td>{{ service.details.memory_usage or 'N/A' }}</td>
                         <td>{{ service.details.thread_count or 'N/A' }}</td>
                         <td>{{ service.details.last_log_time or 'N/A' }}</td>
                         <td>

@@ -7,22 +7,16 @@ import requests
 from urllib.parse import quote
 
 from flask import Flask, jsonify, render_template
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
 CAMERAS_FILE = "/home/ubuntu/livestream/cameras.json"
 
-SERVICES = [
-    "chat.service",
-    "jpg_video_watcher.service",
-    "mai-front.service",
-    "MAI.service",
-    "mongod.service",
-    "polygon.service",
-    "readDB.service",
-    "severity.service",
-    "stream_chunker.service",
-]
+SERVICES = os.environ.get("SERVICES", "").split(",")
+HOST = os.environ.get("HOST", "localhost")
 
 LOG_FILES = {
     "jpg_video_watcher": "/var/log/jpg_video_watcher.log",
@@ -163,7 +157,7 @@ def index():
     services = [get_service_status(s) for s in SERVICES]
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     system_message_logs = get_system_message_logs()
-    return render_template("index.html", cameras=cameras, services=services, timestamp=timestamp, system_message_logs=system_message_logs)
+    return render_template("index.html", cameras=cameras, services=services, timestamp=timestamp, system_message_logs=system_message_logs, host=HOST)
 
 @app.route("/log/<name>")
 def log(name):
