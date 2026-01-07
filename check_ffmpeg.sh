@@ -1,11 +1,12 @@
 #!/bin/bash
-
+set -x
 set -e
 
 SHOW_DIR="/var/www/html/show"
 PHONE_NUMBER="+972509966168"
-API_URL="http://www.maifocus.com:5500/send_sms"
+API_URL="http://dev.maifocus.com:5500/send_sms"
 AUTH_HEADER="Authorization: Basic YWRtaW46QXVndV8yMDIz"
+CAMERA_FILE="/home/ubuntu/livestream/cameras.json"
 
 echo "Checking ffmpeg stream folders under: $SHOW_DIR"
 
@@ -27,14 +28,26 @@ for key in $STREAM_KEYS; do
             echo "Killing ffmpeg PID: $pid for key: $key"
             sudo kill -9 "$pid"
         done
+        CAMERA_DATA=$(jq -r ".[] | select(.rtmpCode == \"$key\") | \"\(.mission_ids),\(.camera_id)\"" "$CAMERA_FILE")
 
-        # Send SMS alert
-        #curl --silent --output /dev/null --location --request POST "$API_URL" \
-        #  --header "Content-Type: application/json-patch+json" \
-        #  --header "$AUTH_HEADER" \
-        #  --data-raw "{ \"number\": \"$PHONE_NUMBER\", \"message\": \"Maifocus Alert: ffmpeg $key was killed\" }"
+        if [ -n "$CAMERA_DATA" ]; then
+                MISSION_ID=$(echo "$CAMERA_DATA" | cut -d',' -f1)
+                CAMERA_ID=$(echo "$CAMERA_DATA" | cut -d',' -f2)
 
-        echo "SMS alert sent for key: $key"
+                if [ -n "$MISSION_ID" ] && [ -n "$CAMERA_ID" ]; then
+                        curl --silent --location --request POST "http://localhost:5500/api/system_messagelog" \
+                        --header "Content-Type: application/json-patch+json" \
+                        --header "$AUTH_HEADER" \
+                        --data-raw "{ \"mission_id\": \"$MISSION_ID\", \"camera_id\": \"$CAMERA_ID\", \"source\": \"check_ffmpeg\", \"message\": \"ffmpeg process for $key was killed\" }"
+                else
+                        echo "[WARN] Missing mission_id or camera_id for key: $key"
+                fi
+        else
+                echo "[WARN] No camera data found for key: $key — skipping system log"
+        fi
+
+        CAMERA_DATA=$(jq -r ".[] | select(.rtmpCode == \"$key\") | \"\(.mission_ids),\(.camera_id)\"" "$CAMERA_FILE")
+        MISSION_ID=$(echo "$CAMERA_DATA" | cut -d',' -f1)
+        CAMERA_ID=$(echo "$CAMERA_DATA" | cut -d',' -f2)
     fi
 done
-
