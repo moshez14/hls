@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 set -e
 
 #######################################
@@ -13,6 +12,7 @@ else
   echo "Missing .env file"
   exit 1
 fi
+
 echo "Checking ffmpeg stream folders under: $SHOW_DIR"
 
 
@@ -34,6 +34,7 @@ for key in $STREAM_KEYS; do
             echo "Killing ffmpeg PID: $pid for key: $key"
             sudo kill -9 "$pid"
         done
+
         CAMERA_DATA=$(jq -r ".[] | select(.rtmpCode == \"$key\") | \"\(.mission_ids),\(.camera_id)\"" "$CAMERA_FILE")
 
         if [ -n "$CAMERA_DATA" ]; then
@@ -51,9 +52,5 @@ for key in $STREAM_KEYS; do
         else
                 echo "[WARN] No camera data found for key: $key — skipping system log"
         fi
-
-        CAMERA_DATA=$(jq -r ".[] | select(.rtmpCode == \"$key\") | \"\(.mission_ids),\(.camera_id)\"" "$CAMERA_FILE")
-        MISSION_ID=$(echo "$CAMERA_DATA" | cut -d',' -f1)
-        CAMERA_ID=$(echo "$CAMERA_DATA" | cut -d',' -f2)
     fi
 done
