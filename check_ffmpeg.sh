@@ -2,13 +2,19 @@
 set -x
 set -e
 
-SHOW_DIR="/var/www/html/show"
-PHONE_NUMBER="+972509966168"
-API_URL="http://dev.maifocus.com:5500/send_sms"
-AUTH_HEADER="Authorization: Basic YWRtaW46QXVndV8yMDIz"
-CAMERA_FILE="/home/ubuntu/livestream/cameras.json"
+#######################################
+# CONFIG
+#######################################
+ENV_FILE=".env"
 
+if [ -f "$ENV_FILE" ]; then
+  source "$ENV_FILE"
+else
+  echo "Missing .env file"
+  exit 1
+fi
 echo "Checking ffmpeg stream folders under: $SHOW_DIR"
+
 
 # Extract stream keys from RTMP URLs in ffmpeg processes
 STREAM_KEYS=$(ps -ef | grep ffmpeg | grep -v grep | grep -oE 'rtmp://[^ ]+/[^ ]+' | awk -F/ '{print $NF}' | sort | uniq)
